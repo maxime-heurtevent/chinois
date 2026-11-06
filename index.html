@@ -1,44 +1,551 @@
-<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="中文">
-<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.png"><title>中文</title>
-<style>
-:root{--bg:#fafaf7;--fg:#1c1c1c;--card:#fff;--ac:#c0392b}
-@media(prefers-color-scheme:dark){:root{--bg:#161616;--fg:#eee;--card:#242424}}
-*{box-sizing:border-box}html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--fg);font-family:-apple-system,sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
-#top{padding:12px 0;font-size:14px;opacity:.7;text-align:center}
-#card{flex:1;margin:8px 0 16px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;text-align:center;box-shadow:0 2px 12px #0002}
-#w{font-size:64px}#d{font-size:22px;min-height:60px}
-button{font-size:18px;border:0;border-radius:14px;padding:16px;background:var(--ac);color:#fff}
-#sp{background:none;font-size:34px;padding:4px}
-#btns{display:flex;gap:12px;margin-bottom:16px}#btns button{flex:1}
-#no{background:#777}#ok{background:#27ae60}
-</style></head><body>
-<div id="top"></div>
-<div id="card"><div id="w"></div><button id="sp">🔊</button><div id="d"></div></div>
-<div id="btns"></div>
-<script src="data.js"></script>
-<script>
-const K='zh-state',DAY=864e5,IV=[0,1,3,7,14,30];
-let S={};try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){}
-const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
-let q=[],cur,shown=false;
-const $=i=>document.getElementById(i);
-function speak(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=.85;speechSynthesis.speak(u)}
-function build(){const n=Date.now();q=CARDS.map((c,i)=>i).filter(i=>!S[i]||S[i].due<=n).sort(()=>Math.random()-.5).slice(0,30)}
-function show(){
- $('top').textContent=q.length?q.length+' restantes · '+Object.keys(S).length+'/'+CARDS.length+' vues':'';
- if(!q.length){$('w').textContent='✓';$('d').textContent='Terminé pour aujourd\'hui !';$('sp').style.display='none';$('btns').innerHTML='<button onclick="build();show()" style="flex:1">Encore</button>';return}
- cur=q[0];shown=false;$('sp').style.display='';$('w').textContent=CARDS[cur][0];$('d').textContent='';
- $('btns').innerHTML='<button onclick="rev()" style="flex:1">Voir la réponse</button>';
-}
-function rev(){shown=true;speak(CARDS[cur][0]);$('d').textContent=CARDS[cur][1];
- $('btns').innerHTML='<button id="no" onclick="ans(0)">À revoir</button><button id="ok" onclick="ans(1)">Su</button>'}
-function ans(ok){const s=S[cur]||{b:0};q.shift();
- if(ok){s.b=Math.min(s.b+1,5);s.due=Date.now()+IV[s.b]*DAY}else{s.b=0;s.due=Date.now();q.splice(Math.min(3,q.length),0,cur)}
- S[cur]=s;save();show()}
-$('sp').onclick=()=>speak(CARDS[cur][0]);
-build();show();
-if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
-</script></body></html>
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="中文">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon.png">
+    <title>中文</title>
+    <style>
+        :root {
+            --bg: #fafaf7;
+            --fg: #1c1c1c;
+            --card: #fff;
+            --ac: #c0392b
+        }
+
+        @media(prefers-color-scheme:dark) {
+            :root {
+                --bg: #161616;
+                --fg: #eee;
+                --card: #242424
+            }
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        html,
+        body {
+            height: 100%;
+            margin: 0
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--fg);
+            font-family: -apple-system, sans-serif;
+            display: flex;
+            flex-direction: column;
+            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom)
+        }
+
+        #top {
+            position: relative;
+            min-height: 44px;
+            padding: 12px 0;
+            font-size: 14px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center
+        }
+
+        #stat {
+            opacity: .7
+        }
+
+        #home,
+        #study {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0
+        }
+
+        #home[hidden],
+        #study[hidden],
+        #flash[hidden],
+        #trace[hidden] {
+            display: none !important
+        }
+
+        #home {
+            justify-content: center;
+            gap: 12px
+        }
+
+        #hello {
+            margin: 0 0 20px;
+            text-align: center;
+            font-size: 56px
+        }
+
+        #card {
+            flex: 1;
+            min-height: 0;
+            margin: 8px 0 16px;
+            background: var(--card);
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 12px #0002
+        }
+
+        #flash,
+        #trace {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px
+        }
+
+        #trace {
+            flex: 1;
+            min-height: 0;
+            justify-content: flex-start;
+            gap: 12px
+        }
+
+        #w {
+            font-size: 64px
+        }
+
+        #py {
+            font-size: 18px;
+            line-height: 1.5
+        }
+
+        #flash.ex {
+            align-items: stretch;
+            gap: 14px
+        }
+
+        #flash.ex #w {
+            font-size: 32px;
+            line-height: 1.45
+        }
+
+        #flash.ex #d {
+            font-size: 18px;
+            min-height: 0
+        }
+
+        #card.ex {
+            overflow: auto;
+            justify-content: safe center
+        }
+
+        #thead {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px
+        }
+
+        #bopo {
+            background: none;
+            color: inherit;
+            font-size: 15px;
+            line-height: 1.2;
+            padding: 6px 12px;
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 1.5px #0003
+        }
+
+        #bopo.on {
+            background: var(--ac);
+            color: #fff;
+            box-shadow: none
+        }
+
+        #tb {
+            font-size: 20px;
+            letter-spacing: .04em
+        }
+
+        #d {
+            font-size: 22px;
+            min-height: 60px
+        }
+
+        #td {
+            font-size: 18px;
+            min-height: 28px
+        }
+
+        button {
+            font-size: 18px;
+            border: 0;
+            border-radius: 14px;
+            padding: 16px;
+            background: var(--ac);
+            color: #fff
+        }
+
+        #sp,
+        #tsp,
+        #back {
+            background: none;
+            color: inherit;
+            font-size: 34px;
+            padding: 4px
+        }
+
+        #back {
+            position: absolute;
+            left: 0;
+            font-size: 15px;
+            padding: 8px 0
+        }
+
+        #home button {
+            width: 100%
+        }
+
+        #btns {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px
+        }
+
+        #btns button {
+            flex: 1
+        }
+
+        #no {
+            background: #777
+        }
+
+        #ok {
+            background: #27ae60
+        }
+
+        #pad {
+            position: relative;
+            flex: 0 0 auto;
+            border-radius: 16px;
+            box-shadow: inset 0 0 0 1px #0002;
+            touch-action: none;
+            user-select: none
+        }
+
+        @media(prefers-color-scheme:dark) {
+            #pad {
+                box-shadow: inset 0 0 0 1px #fff2
+            }
+
+            #bopo {
+                box-shadow: inset 0 0 0 1.5px #fff3
+            }
+        }
+
+        #grid,
+        #guide,
+        #writer {
+            position: absolute;
+            inset: 0
+        }
+
+        #grid,
+        #guide {
+            width: 100%;
+            height: 100%;
+            pointer-events: none
+        }
+
+        #grid {
+            color: var(--fg)
+        }
+
+        #grid line {
+            stroke: currentColor;
+            stroke-opacity: .18;
+            stroke-width: 1;
+            vector-effect: non-scaling-stroke
+        }
+
+        #writer {
+            z-index: 1
+        }
+
+        #writer svg {
+            display: block;
+            touch-action: none
+        }
+    </style>
+</head>
+
+<body>
+    <div id="top"><button id="back" type="button" hidden>Modes</button><span id="stat"></span></div>
+    <div id="home">
+        <p id="hello">中文</p>
+        <button id="go-cards" type="button">Flashcards</button>
+        <button id="go-ex" type="button">Exemples</button>
+        <button id="go-trace" type="button">Tracé</button>
+    </div>
+    <div id="study" hidden>
+        <div id="card">
+            <div id="flash">
+                <div id="w"></div><button id="sp" type="button">🔊</button>
+                <div id="py" hidden></div>
+                <div id="d"></div>
+            </div>
+            <div id="trace" hidden>
+                <div id="thead"><button id="tsp" type="button">🔊</button><button id="bopo" type="button" aria-pressed="false">Bopomofo</button></div>
+                <div id="td"></div>
+                <div id="tb" hidden></div>
+                <div id="pad">
+                    <svg id="grid" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <line x1="50" y1="8" x2="50" y2="92"></line>
+                        <line x1="8" y1="50" x2="92" y2="50"></line>
+                    </svg>
+                    <svg id="guide" aria-hidden="true"></svg>
+                    <div id="writer" aria-label="Zone de tracé"></div>
+                </div>
+            </div>
+        </div>
+        <div id="btns"></div>
+    </div>
+    <script src="hanzi-writer.min.js"></script>
+    <script src="data.js"></script>
+    <script src="examples.js"></script>
+    <script src="strokes.js"></script>
+    <script>
+        const K = 'zh-state', EK = 'zh-ex', DAY = 864e5, IV = [0, 1, 3, 7, 14, 30], PAD = 16, SVGNS = 'http://www.w3.org/2000/svg';
+        const loadState = k => { try { return JSON.parse(localStorage.getItem(k)) || {} } catch (e) { return {} } };
+        let S = loadState(K), E = loadState(EK);
+        let deck = CARDS, state = S, stateKey = K, example = false;
+        const save = () => { try { localStorage.setItem(stateKey, JSON.stringify(state)) } catch (e) { } };
+        let q = [], cur, shown = false;
+        let tq = [], ti = 0, ci = 0, writer = null, gen = 0, traceStroke = 0, traceSize = 0, hintOn = false, showBopo = false;
+        const $ = i => document.getElementById(i);
+        const isHan = c => /\p{Script=Han}/u.test(c);
+        const fg = () => getComputedStyle(document.body).color;
+        function speak(t) { if (!window.speechSynthesis) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang = 'zh-TW'; u.rate = .85; speechSynthesis.speak(u) }
+        function home() {
+            gen++;
+            if (writer) { try { writer.cancelQuiz() } catch (e) { } writer = null }
+            $('flash').classList.remove('ex');
+            $('card').classList.remove('ex');
+            $('home').hidden = false;
+            $('study').hidden = true;
+            $('back').hidden = true;
+            $('stat').textContent = '';
+        }
+        function startFlash(ex) {
+            example = ex;
+            deck = ex ? EXAMPLES : CARDS;
+            state = ex ? E : S;
+            stateKey = ex ? EK : K;
+            $('home').hidden = true;
+            $('study').hidden = false;
+            $('flash').hidden = false;
+            $('trace').hidden = true;
+            $('flash').classList.toggle('ex', ex);
+            $('card').classList.toggle('ex', ex);
+            $('back').hidden = false;
+            build(); show();
+        }
+        function enterCards() { startFlash(false) }
+        function enterExamples() { startFlash(true) }
+        function enterTrace() {
+            $('flash').classList.remove('ex');
+            $('card').classList.remove('ex');
+            $('home').hidden = true;
+            $('study').hidden = false;
+            $('flash').hidden = true;
+            $('trace').hidden = false;
+            $('back').hidden = false;
+            buildTrace(); showTrace();
+        }
+        function build() { const n = Date.now(); q = deck.map((c, i) => i).filter(i => !state[i] || state[i].due <= n).sort(() => Math.random() - .5).slice(0, 30) }
+        function clearAnswer() { $('py').hidden = true; $('py').textContent = ''; $('d').textContent = '' }
+        function show() {
+            $('stat').textContent = q.length ? q.length + ' restantes · ' + Object.keys(state).length + '/' + deck.length + ' vues' : '';
+            if (!q.length) { $('w').textContent = '✓'; clearAnswer(); $('d').textContent = 'Terminé pour aujourd\'hui !'; $('sp').style.display = 'none'; $('btns').innerHTML = '<button onclick="build();show()" style="flex:1">Encore</button>'; return }
+            cur = q[0]; shown = false; $('sp').style.display = ''; $('w').textContent = deck[cur][0]; clearAnswer();
+            $('btns').innerHTML = '<button onclick="rev()" style="flex:1">Voir la réponse</button>';
+        }
+        function rev() {
+            shown = true; speak(deck[cur][0]);
+            if (example) { $('py').hidden = false; $('py').textContent = deck[cur][2]; $('d').textContent = deck[cur][1] }
+            else $('d').textContent = deck[cur][1];
+            $('btns').innerHTML = '<button id="no" onclick="ans(0)">À revoir</button><button id="ok" onclick="ans(1)">Su</button>'
+        }
+        function ans(ok) {
+            const s = state[cur] || { b: 0 }; q.shift();
+            if (ok) { s.b = Math.min(s.b + 1, 5); s.due = Date.now() + IV[s.b] * DAY } else { s.b = 0; s.due = Date.now(); q.splice(Math.min(3, q.length), 0, cur) }
+            state[cur] = s; save(); show()
+        }
+        function tracePool() {
+            const words = [];
+            for (const [word, gloss] of CARDS) {
+                const chars = [...word].filter(c => isHan(c) && STROKES[c]);
+                if (chars.length) words.push({ word, gloss, chars });
+            }
+            return words.sort(() => Math.random() - .5);
+        }
+        function buildTrace() { tq = tracePool().slice(0, 30); ti = 0; ci = 0 }
+        function currentChar() { const item = tq[ti]; return item ? item.chars[ci] : null }
+        function splitGloss(gloss) {
+            const m = gloss.match(/^(.*)\s*[（(]([^）)]*[ㄅ-ㄩ][^）)]*)[）)]\s*$/);
+            return m ? { text: m[1].trim(), bopo: m[2].trim() } : { text: gloss.trim(), bopo: '' };
+        }
+        function applyBopo(bopo) {
+            $('bopo').classList.toggle('on', showBopo);
+            $('bopo').setAttribute('aria-pressed', showBopo ? 'true' : 'false');
+            $('tb').textContent = bopo || '';
+            $('tb').hidden = !(showBopo && bopo);
+        }
+        function padSize() {
+            const card = $('card');
+            const box = getComputedStyle(card);
+            const w = card.clientWidth - parseFloat(box.paddingLeft) - parseFloat(box.paddingRight);
+            const above = $('thead').offsetHeight + $('td').offsetHeight + ($('tb').hidden ? 0 : $('tb').offsetHeight) + 36;
+            const h = card.clientHeight - parseFloat(box.paddingTop) - parseFloat(box.paddingBottom) - above;
+            return Math.max(140, Math.floor(Math.min(w, h, 440)));
+        }
+        function drawGuide(data, index, size) {
+            const svg = $('guide');
+            svg.setAttribute('width', size);
+            svg.setAttribute('height', size);
+            svg.setAttribute('viewBox', '0 0 ' + size + ' ' + size);
+            svg.replaceChildren();
+            if (!data || index < 0 || index >= data.strokes.length) return;
+            const g = document.createElementNS(SVGNS, 'g');
+            g.setAttribute('transform', HanziWriter.getScalingTransform(size, size, PAD).transform);
+            const path = document.createElementNS(SVGNS, 'path');
+            path.setAttribute('d', data.strokes[index]);
+            path.setAttribute('fill', '#c0392b');
+            path.setAttribute('fill-opacity', matchMedia('(prefers-color-scheme: dark)').matches ? '0.9' : '0.5');
+            g.appendChild(path);
+            svg.appendChild(g);
+        }
+        function traceBtns(done) {
+            $('btns').innerHTML = done
+                ? '<button id="no" onclick="showTrace()">Recommencer</button><button id="ok" onclick="nextTrace()">Suivant</button>'
+                : '<button id="no" onclick="showTrace()">Recommencer</button><button onclick="skipChar()">Passer</button>';
+        }
+        function showTrace() {
+            const my = ++gen;
+            if (writer) { try { writer.cancelQuiz() } catch (e) { } writer = null }
+            $('pad').style.display = '';
+            $('thead').style.display = '';
+            const left = tq.length - ti;
+            const itemNow = tq[ti];
+            const step = itemNow && itemNow.chars.length > 1 ? ' · ' + (ci + 1) + '/' + itemNow.chars.length : '';
+            $('stat').textContent = left > 0 ? left + ' restantes' + step : '';
+            if (ti >= tq.length) {
+                $('thead').style.display = 'none';
+                $('tb').hidden = true;
+                $('td').textContent = '✓ Terminé pour aujourd\'hui !';
+                $('pad').style.display = 'none';
+                $('guide').replaceChildren();
+                $('writer').replaceChildren();
+                $('btns').innerHTML = '<button onclick="buildTrace();showTrace()" style="flex:1">Encore</button>';
+                return;
+            }
+            const item = itemNow;
+            const gloss = splitGloss(item.gloss);
+            $('td').textContent = gloss.text;
+            applyBopo(gloss.bopo);
+            $('tsp').onclick = () => speak(item.word);
+            traceBtns(false);
+            requestAnimationFrame(() => { if (my === gen) mountWriter(item, my) });
+        }
+        function mountWriter(item, my) {
+            const size = padSize();
+            traceSize = size;
+            traceStroke = 0;
+            const pad = $('pad');
+            pad.style.width = size + 'px';
+            pad.style.height = size + 'px';
+            $('writer').replaceChildren();
+            const data = STROKES[item.chars[ci]];
+            hintOn = false;
+            drawGuide(null, -1, size);
+            const scale = (size - 2 * PAD) / 1024;
+            writer = HanziWriter.create('writer', item.chars[ci], {
+                width: size,
+                height: size,
+                padding: PAD,
+                showOutline: false,
+                showCharacter: false,
+                showHintAfterMisses: false,
+                highlightOnComplete: false,
+                strokeColor: fg(),
+                drawingColor: fg(),
+                outlineColor: 'rgba(0,0,0,0)',
+                drawingWidth: Math.max(16, (size / 24) / scale),
+                strokeFadeDuration: 200,
+                charDataLoader: (_c, onLoad) => onLoad(data)
+            });
+            writer.quiz({
+                showHintAfterMisses: false,
+                highlightOnComplete: false,
+                onMistake(s) {
+                    if (my !== gen || s.mistakesOnStroke < 3) return;
+                    hintOn = true;
+                    traceStroke = s.strokeNum;
+                    drawGuide(data, s.strokeNum, size);
+                },
+                onCorrectStroke(s) {
+                    if (my !== gen) return;
+                    hintOn = false;
+                    traceStroke = s.strokeNum + 1;
+                    drawGuide(null, -1, size);
+                },
+                onComplete() {
+                    if (my !== gen) return;
+                    hintOn = false;
+                    traceStroke = -1;
+                    drawGuide(null, -1, size);
+                    if (ci < item.chars.length - 1) { ci++; showTrace(); return }
+                    traceBtns(true);
+                }
+            });
+        }
+        function nextTrace() { ti++; ci = 0; showTrace() }
+        function skipChar() {
+            const item = tq[ti];
+            if (item && ci < item.chars.length - 1) { ci++; showTrace(); return }
+            nextTrace();
+        }
+        function fitPad() {
+            if ($('trace').hidden || !writer || ti >= tq.length) return;
+            const size = padSize();
+            if (!size || size === traceSize) return;
+            traceSize = size;
+            $('pad').style.width = size + 'px';
+            $('pad').style.height = size + 'px';
+            writer.updateDimensions({ width: size, height: size, padding: PAD });
+            drawGuide(hintOn ? STROKES[currentChar()] : null, hintOn ? traceStroke : -1, size);
+        }
+        $('bopo').onclick = () => {
+            showBopo = !showBopo;
+            const item = tq[ti];
+            applyBopo(item ? splitGloss(item.gloss).bopo : '');
+            requestAnimationFrame(fitPad);
+        };
+        $('sp').onclick = () => { if (deck[cur]) speak(deck[cur][0]) };
+        $('back').onclick = home;
+        $('go-cards').onclick = enterCards;
+        $('go-ex').onclick = enterExamples;
+        $('go-trace').onclick = enterTrace;
+        window.addEventListener('resize', fitPad);
+        home();
+        if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+    </script>
+</body>
+
+</html>
