@@ -1,0 +1,44 @@
+<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="中文">
+<link rel="manifest" href="manifest.json"><link rel="apple-touch-icon" href="icon.png"><title>中文</title>
+<style>
+:root{--bg:#fafaf7;--fg:#1c1c1c;--card:#fff;--ac:#c0392b}
+@media(prefers-color-scheme:dark){:root{--bg:#161616;--fg:#eee;--card:#242424}}
+*{box-sizing:border-box}html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:-apple-system,sans-serif;display:flex;flex-direction:column;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+#top{padding:12px 0;font-size:14px;opacity:.7;text-align:center}
+#card{flex:1;margin:8px 0 16px;background:var(--card);border-radius:20px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:20px;text-align:center;box-shadow:0 2px 12px #0002}
+#w{font-size:64px}#d{font-size:22px;min-height:60px}
+button{font-size:18px;border:0;border-radius:14px;padding:16px;background:var(--ac);color:#fff}
+#sp{background:none;font-size:34px;padding:4px}
+#btns{display:flex;gap:12px;margin-bottom:16px}#btns button{flex:1}
+#no{background:#777}#ok{background:#27ae60}
+</style></head><body>
+<div id="top"></div>
+<div id="card"><div id="w"></div><button id="sp">🔊</button><div id="d"></div></div>
+<div id="btns"></div>
+<script src="data.js"></script>
+<script>
+const K='zh-state',DAY=864e5,IV=[0,1,3,7,14,30];
+let S={};try{S=JSON.parse(localStorage.getItem(K))||{}}catch(e){}
+const save=()=>{try{localStorage.setItem(K,JSON.stringify(S))}catch(e){}};
+let q=[],cur,shown=false;
+const $=i=>document.getElementById(i);
+function speak(t){if(!window.speechSynthesis)return;speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='zh-TW';u.rate=.85;speechSynthesis.speak(u)}
+function build(){const n=Date.now();q=CARDS.map((c,i)=>i).filter(i=>!S[i]||S[i].due<=n).sort(()=>Math.random()-.5).slice(0,30)}
+function show(){
+ $('top').textContent=q.length?q.length+' restantes · '+Object.keys(S).length+'/'+CARDS.length+' vues':'';
+ if(!q.length){$('w').textContent='✓';$('d').textContent='Terminé pour aujourd\'hui !';$('sp').style.display='none';$('btns').innerHTML='<button onclick="build();show()" style="flex:1">Encore</button>';return}
+ cur=q[0];shown=false;$('sp').style.display='';$('w').textContent=CARDS[cur][0];$('d').textContent='';
+ $('btns').innerHTML='<button onclick="rev()" style="flex:1">Voir la réponse</button>';
+}
+function rev(){shown=true;speak(CARDS[cur][0]);$('d').textContent=CARDS[cur][1];
+ $('btns').innerHTML='<button id="no" onclick="ans(0)">À revoir</button><button id="ok" onclick="ans(1)">Su</button>'}
+function ans(ok){const s=S[cur]||{b:0};q.shift();
+ if(ok){s.b=Math.min(s.b+1,5);s.due=Date.now()+IV[s.b]*DAY}else{s.b=0;s.due=Date.now();q.splice(Math.min(3,q.length),0,cur)}
+ S[cur]=s;save();show()}
+$('sp').onclick=()=>speak(CARDS[cur][0]);
+build();show();
+if('serviceWorker'in navigator)navigator.serviceWorker.register('sw.js');
+</script></body></html>
