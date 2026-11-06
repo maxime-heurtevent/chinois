@@ -70,7 +70,10 @@
         #home[hidden],
         #study[hidden],
         #flash[hidden],
-        #trace[hidden] {
+        #trace[hidden],
+        #list[hidden],
+        #btns[hidden],
+        .row[hidden] {
             display: none !important
         }
 
@@ -143,6 +146,82 @@
         #card.ex {
             overflow: auto;
             justify-content: safe center
+        }
+
+        #card.list {
+            align-items: stretch;
+            justify-content: flex-start;
+            padding: 12px 16px 8px;
+            overflow: hidden
+        }
+
+        #list {
+            flex: 1;
+            width: 100%;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            text-align: left
+        }
+
+        #find {
+            width: 100%;
+            font: inherit;
+            font-size: 16px;
+            padding: 10px 12px;
+            border: 0;
+            border-radius: 12px;
+            background: var(--bg);
+            color: var(--fg)
+        }
+
+        #rows {
+            overflow: auto;
+            flex: 1;
+            min-height: 0
+        }
+
+        .row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 2px 8px;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #00000014
+        }
+
+        .row b {
+            grid-column: 1;
+            grid-row: 1;
+            font-size: 22px;
+            font-weight: 600
+        }
+
+        .row .bp,
+        .row .tr {
+            grid-column: 1;
+            font-size: 15px
+        }
+
+        .row .bp {
+            grid-row: 2;
+            opacity: .7
+        }
+
+        .row .tr {
+            grid-row: 3
+        }
+
+        .row button {
+            grid-column: 2;
+            grid-row: 1 / span 3;
+            justify-self: end;
+            align-self: center;
+            background: none;
+            color: inherit;
+            font-size: 22px;
+            padding: 8px
         }
 
         #thead {
@@ -247,6 +326,10 @@
             #bopo {
                 box-shadow: inset 0 0 0 1.5px #fff3
             }
+
+            .row {
+                border-bottom-color: #ffffff14
+            }
         }
 
         #grid,
@@ -292,6 +375,7 @@
         <button id="go-cards" type="button">Flashcards</button>
         <button id="go-ex" type="button">Exemples</button>
         <button id="go-trace" type="button">Tracé</button>
+        <button id="go-list" type="button">Liste</button>
     </div>
     <div id="study" hidden>
         <div id="card">
@@ -312,6 +396,10 @@
                     <svg id="guide" aria-hidden="true"></svg>
                     <div id="writer" aria-label="Zone de tracé"></div>
                 </div>
+            </div>
+            <div id="list" hidden>
+                <input id="find" type="search" placeholder="Rechercher" enterkeyhint="search" autocomplete="off">
+                <div id="rows"></div>
             </div>
         </div>
         <div id="btns"></div>
@@ -336,7 +424,9 @@
             gen++;
             if (writer) { try { writer.cancelQuiz() } catch (e) { } writer = null }
             $('flash').classList.remove('ex');
-            $('card').classList.remove('ex');
+            $('card').classList.remove('ex', 'list');
+            $('list').hidden = true;
+            $('btns').hidden = false;
             $('home').hidden = false;
             $('study').hidden = true;
             $('back').hidden = true;
@@ -351,6 +441,9 @@
             $('study').hidden = false;
             $('flash').hidden = false;
             $('trace').hidden = true;
+            $('list').hidden = true;
+            $('btns').hidden = false;
+            $('card').classList.remove('list');
             $('flash').classList.toggle('ex', ex);
             $('card').classList.toggle('ex', ex);
             $('back').hidden = false;
@@ -365,8 +458,63 @@
             $('study').hidden = false;
             $('flash').hidden = true;
             $('trace').hidden = false;
+            $('list').hidden = true;
+            $('btns').hidden = false;
+            $('card').classList.remove('list');
             $('back').hidden = false;
             buildTrace(); showTrace();
+        }
+        function enterList() {
+            gen++;
+            if (writer) { try { writer.cancelQuiz() } catch (e) { } writer = null }
+            $('flash').classList.remove('ex');
+            $('card').classList.remove('ex');
+            $('card').classList.add('list');
+            $('home').hidden = true;
+            $('study').hidden = false;
+            $('flash').hidden = true;
+            $('trace').hidden = true;
+            $('list').hidden = false;
+            $('btns').hidden = true;
+            $('back').hidden = false;
+            if (!$('rows').childElementCount) buildList();
+            $('find').value = '';
+            filterList();
+        }
+        function buildList() {
+            const frag = document.createDocumentFragment();
+            for (const [word, gloss] of CARDS) {
+                const g = splitGloss(gloss);
+                const row = document.createElement('div');
+                row.className = 'row';
+                row.dataset.q = (word + ' ' + g.bopo + ' ' + g.text).toLocaleLowerCase('fr');
+                const main = document.createElement('b');
+                main.textContent = word;
+                const bp = document.createElement('div');
+                bp.className = 'bp';
+                bp.textContent = g.bopo;
+                const tr = document.createElement('div');
+                tr.className = 'tr';
+                tr.textContent = g.text;
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = '🔊';
+                btn.setAttribute('aria-label', 'Écouter');
+                btn.onclick = () => speak(word);
+                row.append(main, bp, tr, btn);
+                frag.append(row);
+            }
+            $('rows').append(frag);
+        }
+        function filterList() {
+            const q = $('find').value.trim().toLocaleLowerCase('fr');
+            let n = 0;
+            for (const row of $('rows').children) {
+                const show = !q || row.dataset.q.includes(q);
+                row.hidden = !show;
+                if (show) n++;
+            }
+            $('stat').textContent = n + (n > 1 ? ' mots' : ' mot');
         }
         function build() { const n = Date.now(); q = deck.map((c, i) => i).filter(i => !state[i] || state[i].due <= n).sort(() => Math.random() - .5).slice(0, 30) }
         function clearAnswer() { $('py').hidden = true; $('py').textContent = ''; $('d').textContent = '' }
@@ -542,6 +690,8 @@
         $('go-cards').onclick = enterCards;
         $('go-ex').onclick = enterExamples;
         $('go-trace').onclick = enterTrace;
+        $('go-list').onclick = enterList;
+        $('find').oninput = filterList;
         window.addEventListener('resize', fitPad);
         home();
         if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
