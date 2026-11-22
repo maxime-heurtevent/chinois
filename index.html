@@ -230,6 +230,27 @@
             text-align: left
         }
 
+        #list-mode {
+            display: flex;
+            gap: 8px
+        }
+
+        #list-mode button {
+            flex: 1;
+            background: none;
+            color: inherit;
+            font-size: 15px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            box-shadow: inset 0 0 0 1.5px #0003
+        }
+
+        #list-mode button.on {
+            background: var(--ac);
+            color: #fff;
+            box-shadow: none
+        }
+
         #find {
             width: 100%;
             font: inherit;
@@ -287,6 +308,19 @@
             color: inherit;
             font-size: 22px;
             padding: 8px
+        }
+
+        #list.ex .row b {
+            font-size: 18px;
+            line-height: 1.4
+        }
+
+        #list.ex .row .tr {
+            grid-row: 2
+        }
+
+        #list.ex .row button {
+            grid-row: 1 / span 2
         }
 
         #thead {
@@ -388,7 +422,8 @@
                 box-shadow: inset 0 0 0 1px #fff2
             }
 
-            #bopo {
+            #bopo,
+            #list-mode button {
                 box-shadow: inset 0 0 0 1.5px #fff3
             }
 
@@ -473,6 +508,10 @@
                 </div>
             </div>
             <div id="list" hidden>
+                <div id="list-mode">
+                    <button id="list-words" type="button" class="on" aria-pressed="true">Mots</button>
+                    <button id="list-ex" type="button" aria-pressed="false">Exemples</button>
+                </div>
                 <input id="find" type="search" placeholder="Rechercher" enterkeyhint="search" autocomplete="off">
                 <div id="rows"></div>
             </div>
@@ -491,7 +530,7 @@
         let autoAudio = localStorage.getItem(AK) !== '0';
         let deck = CARDS, state = S, stateKey = K, example = false;
         const save = () => { try { localStorage.setItem(stateKey, JSON.stringify(state)) } catch (e) { } };
-        let q = [], cur, shown = false;
+        let q = [], cur, shown = false, listExamples = false;
         let tq = [], ti = 0, ci = 0, writer = null, gen = 0, traceStroke = 0, traceSize = 0, hintOn = false, showBopo = false;
         const $ = i => document.getElementById(i);
         const isHan = c => /\p{Script=Han}/u.test(c);
@@ -555,32 +594,59 @@
             $('list').hidden = false;
             $('btns').hidden = true;
             $('back').hidden = false;
+            paintListMode();
             if (!$('rows').childElementCount) buildList();
             $('find').value = '';
             filterList();
         }
+        function paintListMode() {
+            $('list').classList.toggle('ex', listExamples);
+            $('list-words').classList.toggle('on', !listExamples);
+            $('list-words').setAttribute('aria-pressed', listExamples ? 'false' : 'true');
+            $('list-ex').classList.toggle('on', listExamples);
+            $('list-ex').setAttribute('aria-pressed', listExamples ? 'true' : 'false');
+        }
+        function setListMode(ex) {
+            if (listExamples === ex && $('rows').childElementCount) return;
+            listExamples = ex;
+            paintListMode();
+            $('rows').replaceChildren();
+            buildList();
+            filterList();
+        }
+        function listRow(mainText, subText, query, speakText) {
+            const row = document.createElement('div');
+            row.className = 'row';
+            row.dataset.q = query;
+            const main = document.createElement('b');
+            main.textContent = mainText;
+            const tr = document.createElement('div');
+            tr.className = 'tr';
+            tr.textContent = subText;
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = '🔊';
+            btn.setAttribute('aria-label', 'Écouter');
+            btn.onclick = () => speak(speakText);
+            row.append(main, tr, btn);
+            return row;
+        }
         function buildList() {
             const frag = document.createDocumentFragment();
-            for (const [word, gloss] of CARDS) {
-                const g = splitGloss(gloss);
-                const row = document.createElement('div');
-                row.className = 'row';
-                row.dataset.q = (word + ' ' + g.bopo + ' ' + g.text).toLocaleLowerCase('fr');
-                const main = document.createElement('b');
-                main.textContent = word;
-                const bp = document.createElement('div');
-                bp.className = 'bp';
-                bp.textContent = g.bopo;
-                const tr = document.createElement('div');
-                tr.className = 'tr';
-                tr.textContent = g.text;
-                const btn = document.createElement('button');
-                btn.type = 'button';
-                btn.textContent = '🔊';
-                btn.setAttribute('aria-label', 'Écouter');
-                btn.onclick = () => speak(word);
-                row.append(main, bp, tr, btn);
-                frag.append(row);
+            if (listExamples) {
+                for (const [zh, fr] of EXAMPLES) {
+                    frag.append(listRow(zh, fr, (zh + ' ' + fr).toLocaleLowerCase('fr'), zh));
+                }
+            } else {
+                for (const [word, gloss] of CARDS) {
+                    const g = splitGloss(gloss);
+                    const row = listRow(word, g.text, (word + ' ' + g.bopo + ' ' + g.text).toLocaleLowerCase('fr'), word);
+                    const bp = document.createElement('div');
+                    bp.className = 'bp';
+                    bp.textContent = g.bopo;
+                    row.insertBefore(bp, row.querySelector('.tr'));
+                    frag.append(row);
+                }
             }
             $('rows').append(frag);
         }
@@ -592,7 +658,8 @@
                 row.hidden = !show;
                 if (show) n++;
             }
-            $('stat').textContent = n + (n > 1 ? ' mots' : ' mot');
+            const label = listExamples ? (n > 1 ? ' exemples' : ' exemple') : (n > 1 ? ' mots' : ' mot');
+            $('stat').textContent = n + label;
         }
         function build() { const n = Date.now(); q = deck.map((c, i) => i).filter(i => !state[i] || state[i].due <= n).sort(() => Math.random() - .5).slice(0, 30) }
         function clearAnswer() { $('py').hidden = true; $('py').textContent = ''; $('d').textContent = '' }
@@ -792,6 +859,8 @@
             paintAudio();
         };
         paintAudio();
+        $('list-words').onclick = () => setListMode(false);
+        $('list-ex').onclick = () => setListMode(true);
         $('find').oninput = filterList;
         window.addEventListener('resize', fitPad);
         home();
