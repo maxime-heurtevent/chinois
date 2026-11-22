@@ -52,7 +52,7 @@ const EXAMPLES = [
 ["天氣很冷","La météo est froide","ㄊㄧㄢㄑㄧˋ ㄏㄣˇ ㄌㄥˇ"],
 ["我們去吃飯吧","Allons manger (lah)","ㄨㄛˇㄇㄣ˙ ㄑㄩˋ ㄔㄈㄢˋ ㄅㄚ"],
 ["我的女朋友在印尼","Ma copine est en Indonésie","ㄨㄛˇ ㄉㄜ˙ ㄋㄩˇㄆㄥˊㄧㄡˇ ㄗㄞˋ ㄧㄣˋㄋㄧˊ"],
-["這個菜有一點辣","Ce plat est un peu épicée","ㄓㄜˋㄍㄜˋ ㄘㄞˋ ㄧㄡˇㄧㄉㄧㄢˇ ㄌㄚˋ"],
+["這個菜有一點辣","Ce plat est un peu épicé","ㄓㄜˋㄍㄜˋ ㄘㄞˋ ㄧㄡˇㄧˋㄉㄧㄢˇ ㄌㄚˋ"],
 ["他在做什麼呢？","Que fait-il?","ㄊㄚ ㄗㄞˋ ㄗㄨㄛˋ ㄕㄜˊㄇㄛ˙ ㄋㄜ˙？"],
 ["我喜歡吃包子","J'aime manger des pains bao","ㄨㄛˇ ㄒㄧˇㄏㄨㄢ˙ ㄔ ㄅㄠㄗ˙"],
 ["這是咖啡嗎？","Est-ce que c'est du café?","ㄓㄜˋ ㄕˋ ㄎㄚㄈㄟ ㄇㄚ？"],
@@ -73,5 +73,15 @@ const EXAMPLES = [
 ["請給我兩張照片","Donnes-moi deux photos, s'il te plaît","ㄑㄧㄥˇ ㄍㄟˇ ㄨㄛˇ ㄌㄧㄤˇ ㄓㄤ ㄓㄠˋㄆㄧㄢˋ"],
 ["外帶還是內用？","À emporter où sur place?","ㄨㄞˋㄉㄞˋ ㄏㄞˊ ㄕˋ ㄋㄟˋㄩㄥˋ？"],
 ["你有八本書","Tu as huit livres","ㄋㄧˇ ㄧㄡˇ ㄅㄚ ㄅㄣˇ ㄕㄨ"],
-["這支手機太貴了","Ce téléphone est trop cher","ㄓㄜˋ ㄓ ㄕㄡˇㄐㄧ ㄊㄞˋ ㄍㄨㄟˋ ㄌㄜ˙"]
+["這支手機太貴了","Ce téléphone est trop cher","ㄓㄜˋ ㄓ ㄕㄡˇㄐㄧ ㄊㄞˋ ㄍㄨㄟˋ ㄌㄜ˙"],
+["這個真好吃","C'est vraiment bon","ㄓㄜˋㄍㄜˋ ㄓㄣ ㄏㄠˇㄔ"],
+["今天有一點不好","Aujourd'hui, je ne me sens pas très bien","ㄐㄧㄣㄊㄧㄢ ㄧㄡˇㄧˋㄉㄧㄢˇ ㄅㄨˋㄏㄠˇ"],
+["這家餐廳很有名，可是太貴了","Ce restaurant est très populaire, mais il est trop cher","ㄓㄜˋ ㄐㄧㄚ ㄘㄢㄊㄧㄥ ㄏㄣˇ ㄧㄡˇㄇㄧㄥˊ， ㄎㄜˇㄕˋ ㄊㄞˋ ㄍㄨㄟˋ ㄌㄜ˙"],
+["我怕辣，所以我不吃","Je n'aime pas le piquant, alors je n'en mange pas","ㄨㄛˇ ㄆㄚˋ ㄌㄚˋ， ㄙㄨㄛˇㄧˇ ㄨㄛˇ ㄅㄨˋ ㄔ"],
+["這個很好吃，所以我常來","C'est très bon, alors je viens souvent","ㄓㄜˋㄍㄜˋ ㄏㄣˇ ㄏㄠˇㄔ， ㄙㄨㄛˇㄧˇ ㄨㄛˇ ㄔㄤˊ ㄌㄞˊ"],
+["我要一碗牛肉麵","Je voudrais un bol de nouilles au bœuf","ㄨㄛˇ ㄧㄠˋ ㄧˋ ㄨㄢˇ ㄋㄧㄡˊㄖㄡˋ ㄇㄧㄢˋ"],
+["這個菜做得真好吃","Ce plat est vraiment bien cuisiné","ㄓㄜˋㄍㄜˋ ㄘㄞˋ ㄗㄨㄛˋ ㄉㄜ˙ ㄓㄣ ㄏㄠˇㄔ"],
+["這個菜做得不好吃","Ce plat n'est pas bien cuisiné","ㄓㄜˋㄍㄜˋ ㄘㄞˋ ㄗㄨㄛˋ ㄉㄜ˙ ㄅㄨˋ ㄏㄠˇㄔ"],
+["你要自己點","Tu dois commander toi-même","ㄋㄧˇ ㄧㄠˋ ㄗˋㄐㄧˇ ㄉㄧㄢˇ"],
+["我會自己做飯","Je sais cuisiner moi-même","ㄨㄛˇ ㄏㄨㄟˋ ㄗˋㄐㄧˇ ㄗㄨㄛˋㄈㄢˋ"]
 ];

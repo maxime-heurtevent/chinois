@@ -72,6 +72,7 @@
         #flash[hidden],
         #trace[hidden],
         #list[hidden],
+        #set[hidden],
         #btns[hidden],
         .row[hidden] {
             display: none !important
@@ -86,6 +87,70 @@
             margin: 0 0 20px;
             text-align: center;
             font-size: 56px
+        }
+
+        #go-set {
+            background: none;
+            color: var(--fg);
+            font-size: 16px;
+            padding: 10px;
+            opacity: .75
+        }
+
+        #set {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding-top: 8px
+        }
+
+        .opt {
+            background: var(--card);
+            border-radius: 20px;
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            box-shadow: 0 2px 12px #0002
+        }
+
+        .opt-t {
+            font-size: 18px
+        }
+
+        .opt-d {
+            margin-top: 4px;
+            font-size: 14px;
+            opacity: .7
+        }
+
+        #auto-audio {
+            flex: 0 0 auto;
+            width: 52px;
+            height: 32px;
+            padding: 0;
+            border-radius: 999px;
+            background: #777;
+            position: relative
+        }
+
+        #auto-audio::after {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: #fff
+        }
+
+        #auto-audio.on {
+            background: var(--ac)
+        }
+
+        #auto-audio.on::after {
+            transform: translateX(20px)
         }
 
         #card {
@@ -376,6 +441,16 @@
         <button id="go-ex" type="button">Exemples</button>
         <button id="go-trace" type="button">Tracé</button>
         <button id="go-list" type="button">Liste</button>
+        <button id="go-set" type="button">Réglages</button>
+    </div>
+    <div id="set" hidden>
+        <div class="opt">
+            <div>
+                <div class="opt-t">Audio automatique</div>
+                <div class="opt-d">Lu quand tu révèles une carte. Tu peux toujours l’écouter à la main.</div>
+            </div>
+            <button id="auto-audio" type="button" role="switch" aria-checked="true" aria-label="Lire l'audio automatiquement"></button>
+        </div>
     </div>
     <div id="study" hidden>
         <div id="card">
@@ -412,6 +487,8 @@
         const K = 'zh-state', EK = 'zh-ex', DAY = 864e5, IV = [0, 1, 3, 7, 14, 30], PAD = 16, SVGNS = 'http://www.w3.org/2000/svg';
         const loadState = k => { try { return JSON.parse(localStorage.getItem(k)) || {} } catch (e) { return {} } };
         let S = loadState(K), E = loadState(EK);
+        const AK = 'zh-audio';
+        let autoAudio = localStorage.getItem(AK) !== '0';
         let deck = CARDS, state = S, stateKey = K, example = false;
         const save = () => { try { localStorage.setItem(stateKey, JSON.stringify(state)) } catch (e) { } };
         let q = [], cur, shown = false;
@@ -429,6 +506,7 @@
             $('btns').hidden = false;
             $('home').hidden = false;
             $('study').hidden = true;
+            $('set').hidden = true;
             $('back').hidden = true;
             $('stat').textContent = '';
         }
@@ -525,7 +603,8 @@
             $('btns').innerHTML = '<button onclick="rev()" style="flex:1">Voir la réponse</button>';
         }
         function rev() {
-            shown = true; speak(deck[cur][0]);
+            shown = true;
+            if (autoAudio) speak(deck[cur][0]);
             if (example) { $('py').hidden = false; $('py').textContent = deck[cur][2]; $('d').textContent = deck[cur][1] }
             else $('d').textContent = deck[cur][1];
             $('btns').innerHTML = '<button id="no" onclick="ans(0)">À revoir</button><button id="ok" onclick="ans(1)">Su</button>'
@@ -691,6 +770,28 @@
         $('go-ex').onclick = enterExamples;
         $('go-trace').onclick = enterTrace;
         $('go-list').onclick = enterList;
+        function paintAudio() {
+            $('auto-audio').classList.toggle('on', autoAudio);
+            $('auto-audio').setAttribute('aria-checked', autoAudio ? 'true' : 'false');
+        }
+        function enterSet() {
+            gen++;
+            if (writer) { try { writer.cancelQuiz() } catch (e) { } writer = null }
+            $('home').hidden = true;
+            $('study').hidden = true;
+            $('set').hidden = false;
+            $('back').hidden = false;
+            $('stat').textContent = '';
+            paintAudio();
+        }
+        $('go-set').onclick = enterSet;
+        $('auto-audio').onclick = () => {
+            autoAudio = !autoAudio;
+            try { localStorage.setItem(AK, autoAudio ? '1' : '0') } catch (e) { }
+            if (!autoAudio && window.speechSynthesis) speechSynthesis.cancel();
+            paintAudio();
+        };
+        paintAudio();
         $('find').oninput = filterList;
         window.addEventListener('resize', fitPad);
         home();
